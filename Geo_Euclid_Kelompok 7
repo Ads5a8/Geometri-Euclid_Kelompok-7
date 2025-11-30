@@ -1,0 +1,78 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
+
+# --- MODUL LOGIKA (TRANSFORMASI) ---
+class AffineTransformer:
+    def apply_transform(self, shapes, matrix_A, vector_b):
+        """
+        Menerapkan T(x) = Ax + b pada himpunan poligon.
+        Args:
+            shapes: List array numpy (N x 2)
+            matrix_A: Matriks transformasi 2x2
+            vector_b: Vektor translasi 1x2
+        """
+        transformed_shapes = []
+        A = np.array(matrix_A)
+        b = np.array(vector_b)
+
+        for shape in shapes:
+            # Operasi matriks: x' = Ax + b
+            # shape.T ditranspose agar sesuai dimensi perkalian matriks
+            transformed_points = (A @ shape.T).T + b
+            transformed_shapes.append(transformed_points)
+            
+        return transformed_shapes
+
+# --- MODUL VISUALISASI ---
+class ShapeVisualizer:
+    def plot_comparison(self, original, transformed, title_suffix=""):
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+        
+        self._plot_single(ax1, original, "Logo Asli (Original)")
+        self._plot_single(ax2, transformed, f"Transformed ({title_suffix})")
+        
+        plt.tight_layout()
+        plt.show()
+
+    def _plot_single(self, ax, shapes, title):
+        color = '#E60012' # Warna Merah Mitsubishi
+        all_coords = []
+        
+        for shape in shapes:
+            poly = Polygon(shape, closed=True, facecolor=color, 
+                         edgecolor='black', alpha=0.8)
+            ax.add_patch(poly)
+            all_coords.extend(shape)
+            
+        # Penyesuaian batas axis otomatis
+        all_coords = np.array(all_coords)
+        margin = 1.0
+        ax.set_xlim(all_coords[:,0].min()-margin, all_coords[:,0].max()+margin)
+        ax.set_ylim(all_coords[:,1].min()-margin, all_coords[:,1].max()+margin)
+        ax.set_aspect('equal')
+        ax.set_title(title)
+        ax.grid(True, linestyle='--', alpha=0.3)
+
+# --- EKSPERIMEN ---
+if __name__ == "__main__":
+    # Definisi Geometri Logo Mitsubishi (3 Belah Ketupat)
+    h = np.sqrt(3)
+    top_diamond = np.array([[0,0], [-1,h], [0,2*h], [1,h]])
+    
+    # Rotasi 120 dan 240 derajat untuk membentuk logo
+    theta1, theta2 = np.radians(120), np.radians(240)
+    R1 = np.array([[np.cos(theta1), -np.sin(theta1)], [np.sin(theta1), np.cos(theta1)]])
+    R2 = np.array([[np.cos(theta2), -np.sin(theta2)], [np.sin(theta2), np.cos(theta2)]])
+    
+    logo = [top_diamond, (R1 @ top_diamond.T).T, (R2 @ top_diamond.T).T]
+    
+    # Matriks Shear (Geseran)
+    shear_matrix = [[1, 1.5], [0, 1]] 
+    
+    # Eksekusi
+    engine = AffineTransformer()
+    viz = ShapeVisualizer()
+    result = engine.apply_transform(logo, shear_matrix, [0,0])
+    viz.plot_comparison(logo, result, "Shearing")
+
